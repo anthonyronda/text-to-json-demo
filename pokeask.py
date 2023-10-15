@@ -1,91 +1,22 @@
 # imports
-import ast  # for converting embeddings saved as strings back to arrays
+import ast # for converting embeddings saved as strings back to arrays
 import openai  # for calling the OpenAI API
 import pandas as pd  # for storing text and embeddings data
 import tiktoken  # for counting tokens
 from scipy import spatial  # for calculating vector similarities for search
 from secretkey import openai_secret_key
-from templates import monster_template
-
-# json template
-json_template='''
-{
-        "hp": {
-          "hd": "a string such as \"1d8\" where 1 is the number of dice and 8 is the number of sides",
-          "value": average hp as integer,
-          "max": average hp as integer
-        },
-        "ac": {
-          "value": ac as integer,
-          "mod": stat-based modifier for ac as integer
-        },
-        "aac": {
-          "value": aac as integer,
-          "mod": stat-based modifier for aac as integer
-        },
-        "thac0": {
-          "value": thac0 as integer,
-          "bba": the number inside the brackets of thac0 as integer,
-          "mod": {
-            "missile": 0,
-            "melee": 0
-          }
-        },
-        "saves": {
-          "death": {
-            "value": the number after D in saving throws as integer
-          },
-          "wand": {
-            "value": the number after W in saving throws as integer
-          },
-          "paralysis": {
-            "value": the number after P in saving throws as integer
-          },
-          "breath": {
-            "value": the number after B in saving throws as integer
-          },
-          "spell": {
-            "value": the number after S in saving throws as integer
-          }
-        },
-        "movement": {
-          "base": the first number in the movement string as integer
-        },
-        "initiative": {
-          "value": 0,
-          "mod": 0
-        }
-      },
-        "details": {
-        "biography": "",
-        "alignment": "",
-        "xp": 0,
-        "specialAbilities": the number of asterisks after the HD number as integer,
-        "treasure": {
-          "table": "the string "Table _" where the blank is the letter after tt",
-          "type": ""
-        },
-        "appearing": {
-          "d": "a string for number appearing such as \"1d8\" where 1 is the number of dice and 8 is the number of sides",
-          "w": "a string inside the parentheses for number appearing such as \"1d8\" where 1 is the number of dice and 8 is the number of sides",
-        },
-        "morale": the number after ml as integer
-      },
-      "attacks": ""
-}
-      '''
-
+from templates import pokemon_template
 
 # models
 EMBEDDING_MODEL = "text-embedding-ada-002"
-GPT_MODEL = "gpt-3.5-turbo-16k"
+GPT_MODEL = "gpt-3.5-turbo"
 
 openai.api_key = openai_secret_key
 
 
 # download pre-chunked text and pre-computed embeddings
 # this file is ~200 MB, so may take a minute depending on your connection speed
-embeddings_path = "data/ose_ref_tome.csv"
+embeddings_path = "data/pocket_monsters.csv"
 
 df = pd.read_csv(embeddings_path)
 
@@ -154,11 +85,12 @@ def query_message(
 ) -> str:
     """Return a message for GPT, with relevant source texts pulled from a dataframe."""
     strings, relatednesses = strings_ranked_by_relatedness(query, df)
-    introduction = 'For each line of the JSON template, if a key-value description is present, replace that description with the relevant data in provided wiki articles about the provided monster. If no key-value description is present, or confidence is low, leave the line as-is.'
-    question = f"\n\nMONSTER: {query}"
-    template = f"\n\nJSON template:\n{monster_template}"
+    introduction = 'For each line of the JSON template, if a key-value description is present, replace that description with the relevant data in provided wiki articles about a Pokemon in the Pokemon team described in the query. Do not invent pokemon, and make sure the moves of that pokemon are correct.'
+    question = f"\n\nQUERY: {query}"
+    template = f"\n\nJSON template:\n{pokemon_template}"
     message = introduction
     for string in strings:
+        print(string)
         next_article = f'\n\nWiki article section:\n"""\n{string}\n"""'
         if (
             num_tokens(message + template + next_article + question, model=model)
@@ -192,7 +124,7 @@ def ask(
     if print_message:
         print(message)
     messages = [
-        {"role": "system", "content": "You input data about role playing game monsters into the provided JSON template."},
+        {"role": "system", "content": "You input data about a Pokemon team into the provided JSON template."},
         {"role": "user", "content": message},
     ]
     response = openai.ChatCompletion.create(
@@ -204,8 +136,7 @@ def ask(
     print(response_message)
     return response_message
 
-ask("Whale, Killer")
-ask("Dragon, Green")
+ask("How did ash's pikachu beat brock's geodude?")
 
 # Foundry VTT Game Compendium GitHub Action Lifecycle
 #

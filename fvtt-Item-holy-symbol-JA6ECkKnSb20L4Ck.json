@@ -1,0 +1,37 @@
+{
+  "name": "Holy Symbol",
+  "type": "item",
+  "img": "icons/commodities/treasure/token-gold-cross.webp",
+  "effects": [],
+  "folder": "FBxn2Zz0vNSqX0tk",
+  "flags": {
+    "cf": null,
+    "core": {},
+    "exportSource": {
+      "world": "ose-lts",
+      "system": "ose",
+      "coreVersion": "11.306",
+      "systemVersion": "1.9.4"
+    }
+  },
+  "system": {
+    "description": "<p>A divine spell caster is required to own a holy symbol of their deity, often worn as a necklace. Each religion has its own holy symbol.</p>",
+    "quantity": {
+      "value": 1,
+      "max": 1
+    },
+    "weight": null,
+    "cost": 25,
+    "containerId": "",
+    "treasure": false,
+    "tags": []
+  },
+  "_stats": {
+    "systemId": "ose",
+    "systemVersion": "1.9.4",
+    "coreVersion": "11.306",
+    "createdTime": 1694287743311,
+    "modifiedTime": 1694287743311,
+    "lastModifiedBy": "KChuFV21VI0gVvTZ"
+  }
+}

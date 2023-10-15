@@ -5,7 +5,7 @@ import pandas as pd  # for storing text and embeddings data
 import tiktoken  # for counting tokens
 from scipy import spatial  # for calculating vector similarities for search
 from secretkey import openai_secret_key
-from templates import monster_template
+from templates import nethack_monster_template
 
 # json template
 json_template='''
@@ -78,14 +78,14 @@ json_template='''
 
 # models
 EMBEDDING_MODEL = "text-embedding-ada-002"
-GPT_MODEL = "gpt-3.5-turbo-16k"
+GPT_MODEL = "gpt-3.5-turbo"
 
 openai.api_key = openai_secret_key
 
 
 # download pre-chunked text and pre-computed embeddings
 # this file is ~200 MB, so may take a minute depending on your connection speed
-embeddings_path = "data/ose_ref_tome.csv"
+embeddings_path = "data/nethack_monsters.csv"
 
 df = pd.read_csv(embeddings_path)
 
@@ -154,9 +154,9 @@ def query_message(
 ) -> str:
     """Return a message for GPT, with relevant source texts pulled from a dataframe."""
     strings, relatednesses = strings_ranked_by_relatedness(query, df)
-    introduction = 'For each line of the JSON template, if a key-value description is present, replace that description with the relevant data in provided wiki articles about the provided monster. If no key-value description is present, or confidence is low, leave the line as-is.'
+    introduction = 'For each line of the JSON template, if a key-value description is present, replace that description with the relevant data in provided wiki articles about the provided monster. SPECIAL INSTRUCTION: also translate all text to Polish language. If no key-value description is present, or confidence is low, leave the line as-is.'
     question = f"\n\nMONSTER: {query}"
-    template = f"\n\nJSON template:\n{monster_template}"
+    template = f"\n\nJSON template:\n{nethack_monster_template}"
     message = introduction
     for string in strings:
         next_article = f'\n\nWiki article section:\n"""\n{string}\n"""'
@@ -204,8 +204,8 @@ def ask(
     print(response_message)
     return response_message
 
-ask("Whale, Killer")
-ask("Dragon, Green")
+ask("Gelatinous Cube")
+ask("Zruty")
 
 # Foundry VTT Game Compendium GitHub Action Lifecycle
 #

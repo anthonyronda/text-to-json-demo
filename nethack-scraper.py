@@ -5,13 +5,14 @@ import openai  # for generating embeddings
 import pandas as pd  # for DataFrames to store article sections and embeddings
 import re  # for cutting <ref> links out of Wiki articles
 import tiktoken  # for counting tokens
+import time # for waiting for API rate limiting
 from secretkey import openai_secret_key
 
 # get Wiki pages about OSE monsters
 
 CATEGORY_TITLE = "Category:Monsters"
-WIKI_HOSTNAME = "oldschoolessentials.necroticgnome.com"
-WIKI_PATH = "/srd/"
+WIKI_HOSTNAME = "nethackwiki.com"
+WIKI_PATH = "/w/"
 
 openai.api_key = openai_secret_key
 
@@ -41,13 +42,13 @@ def titles_from_category(
 
 site = mwclient.Site(host=WIKI_HOSTNAME, path=WIKI_PATH)
 category_page = site.pages[CATEGORY_TITLE]
-titles = titles_from_category(category_page, max_depth=0)
+titles = titles_from_category(category_page, max_depth=2)
 # ^note: max_depth=1 means we go one level deep in the category tree
 print(f"Found {len(titles)} article titles in {CATEGORY_TITLE}.")
 
 # define functions to split Wiki pages into sections
 
-SECTIONS_TO_IGNORE = []
+SECTIONS_TO_IGNORE = ["Strategy", "Origin", "References", "See also", "Messages", "Variants", "History", "UnNetHack"]
 
 # This code defines a function all_subsections_from_section
 # that takes in a section of Wiki code, a list of parent_titles,
@@ -193,7 +194,7 @@ print(f"Filtered out {original_num_sections-len(wiki_sections)} sections, leavin
 for ws in wiki_sections[:5]:
     print(ws[0])
 
-GPT_MODEL = "gpt-3.5-turbo-16k"  # only matters insofar as it selects which tokenizer to use
+GPT_MODEL = "gpt-3.5-turbo"  # only matters insofar as it selects which tokenizer to use
 
 # This code defines a function called num_tokens that takes a
 # string text and an optional string model as input. It uses the
@@ -215,8 +216,9 @@ def num_tokens(text: str, model: str = GPT_MODEL) -> int:
 # at the optimal split point.
 def halved_by_delimiter(string: str, delimiter: str = "\n") -> list[str, str]:
     """Split a string in two, on a delimiter, trying to balance tokens on each side."""
-    chunks = string.split(delimiter)
+    chunks = string.splitlines()
     if len(chunks) == 1:
+        print("no delimiter found", string)
         return [string, ""]  # no delimiter found
     elif len(chunks) == 2:
         return chunks  # no need to search for halfway point
@@ -255,7 +257,7 @@ def truncated_string(
     encoded_string = encoding.encode(string)
     truncated_string = encoding.decode(encoded_string[:max_tokens])
     if print_warning and len(encoded_string) > max_tokens:
-        print(f"Warning: Truncated string from {len(encoded_string)} tokens to {max_tokens} tokens.")
+        print(f"Warning: Truncated string '{truncated_string}' from {len(encoded_string)} tokens to {max_tokens} tokens.")
     return truncated_string
 
 # This code defines a function split_strings_from_subsection
@@ -269,7 +271,7 @@ def split_strings_from_subsection(
     subsection: tuple[list[str], str],
     max_tokens: int = 1000,
     model: str = GPT_MODEL,
-    max_recursion: int = 5,
+    max_recursion: int = 7,
 ) -> list[str]:
     """
     Split a subsection into a list of subsections, each with no more than max_tokens.
@@ -278,6 +280,7 @@ def split_strings_from_subsection(
     titles, text = subsection
     string = "\n\n".join(titles + [text])
     num_tokens_in_string = num_tokens(string)
+
     # if length is fine, return string
     if num_tokens_in_string <= max_tokens:
         return [string]
@@ -314,6 +317,23 @@ wiki_strings = []
 for section in wiki_sections:
     wiki_strings.extend(split_strings_from_subsection(section, max_tokens=MAX_TOKENS))
 
+MAX_BATCH_TOKENS = 150000
+BATCH_ENDS = []
+current_batch_tokens_left = MAX_BATCH_TOKENS
+
+# for each string in wiki_strings, get its number of tokens and add to
+# current_batch_tokens. If current_batch_tokens > MAX_BATCH_TOKENS, add the
+# current index-1 to BATCH_SIZES and reset current_batch_tokens to
+# current_string_tokens (this string is part of the next batch)
+for i, string in enumerate(wiki_strings):
+    current_string_tokens = num_tokens(string)
+    current_batch_tokens_left -= current_string_tokens
+    if current_batch_tokens_left < 0:
+        BATCH_ENDS.append(i-1)
+        current_batch_tokens_left = MAX_BATCH_TOKENS - current_string_tokens
+    # if it's the last string, add it to BATCH_SIZES
+    if i == len(wiki_strings) - 1:
+        BATCH_ENDS.append(len(wiki_strings))
 
 print(f"{len(wiki_sections)} wiki sections split into {len(wiki_strings)} strings.")
 
@@ -322,23 +342,30 @@ print(wiki_strings[1])
 
 # calculate embeddings
 EMBEDDING_MODEL = "text-embedding-ada-002"  # OpenAI's best embeddings as of Apr 2023
-BATCH_SIZE = 1000  # you can submit up to 2048 embedding inputs per request
-
+batch_start = 0
 embeddings = []
-for batch_start in range(0, len(wiki_strings), BATCH_SIZE):
-    batch_end = batch_start + BATCH_SIZE
-    batch = wiki_strings[batch_start:batch_end]
-    print(f"Batch {batch_start} to {batch_end-1}")
+for index in range(len(BATCH_ENDS)):
+    if index == len(BATCH_ENDS) - 1:
+        batch = wiki_strings[batch_start:]
+    else:
+        batch = wiki_strings[batch_start:BATCH_ENDS[index]]
+    print(f"Batch {batch_start} to {BATCH_ENDS[index]-1}")
     response = openai.Embedding.create(model=EMBEDDING_MODEL, input=batch)
     for i, be in enumerate(response["data"]):
         assert i == be["index"]  # double check embeddings are in same order as input
     batch_embeddings = [e["embedding"] for e in response["data"]]
     embeddings.extend(batch_embeddings)
+    batch_start = BATCH_ENDS[index]
+    time.sleep(60)
 
-df = pd.DataFrame({"text": wiki_strings, "embedding": embeddings})
+if len(wiki_strings) == len(embeddings):
+    # Create the DataFrame
+    df = pd.DataFrame({"text": wiki_strings, "embedding": embeddings})
+else:
+    print(f"Error: The length of wiki_strings ({len(wiki_strings)}) and embeddings ({len(embeddings)}) arrays are different.")
 
 # save document chunks and embeddings
 
-SAVE_PATH = "data/ose_monsters2.csv"
+SAVE_PATH = "data/nethack_monsters.csv"
 
 df.to_csv(SAVE_PATH, index=False)

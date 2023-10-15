@@ -5,15 +5,19 @@ import openai  # for generating embeddings
 import pandas as pd  # for DataFrames to store article sections and embeddings
 import re  # for cutting <ref> links out of Wiki articles
 import tiktoken  # for counting tokens
-from secretkey import openai_secret_key
+from secretkey import for_personal_use
 
 # get Wiki pages about OSE monsters
 
-CATEGORY_TITLE = "Category:Monsters"
-WIKI_HOSTNAME = "oldschoolessentials.necroticgnome.com"
-WIKI_PATH = "/srd/"
+CATEGORY_TITLE = "Category:Generation I Pokémon"
+WIKI_HOSTNAME = "bulbapedia.bulbagarden.net"
+WIKI_PATH = "/w/"
 
-openai.api_key = openai_secret_key
+# define functions to split Wiki pages into sections
+
+SECTIONS_TO_IGNORE = ["Related articles", "External links", "In the manga", "Pokéathlon stats","In the TCG", "Other appearances", "In the TFG", "Side game data", "Other languages", "Sprites"]
+
+openai.api_key = for_personal_use
 
 
 # This code defines a function titles_from_category that takes a Wiki
@@ -45,9 +49,8 @@ titles = titles_from_category(category_page, max_depth=0)
 # ^note: max_depth=1 means we go one level deep in the category tree
 print(f"Found {len(titles)} article titles in {CATEGORY_TITLE}.")
 
-# define functions to split Wiki pages into sections
 
-SECTIONS_TO_IGNORE = []
+
 
 # This code defines a function all_subsections_from_section
 # that takes in a section of Wiki code, a list of parent_titles,
@@ -193,7 +196,7 @@ print(f"Filtered out {original_num_sections-len(wiki_sections)} sections, leavin
 for ws in wiki_sections[:5]:
     print(ws[0])
 
-GPT_MODEL = "gpt-3.5-turbo-16k"  # only matters insofar as it selects which tokenizer to use
+GPT_MODEL = "gpt-3.5-turbo"  # only matters insofar as it selects which tokenizer to use
 
 # This code defines a function called num_tokens that takes a
 # string text and an optional string model as input. It uses the
@@ -339,6 +342,6 @@ df = pd.DataFrame({"text": wiki_strings, "embedding": embeddings})
 
 # save document chunks and embeddings
 
-SAVE_PATH = "data/ose_monsters2.csv"
+SAVE_PATH = "data/pocket_monsters.csv"
 
 df.to_csv(SAVE_PATH, index=False)

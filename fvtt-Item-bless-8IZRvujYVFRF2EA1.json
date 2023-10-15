@@ -1,0 +1,37 @@
+{
+  "name": "Bless",
+  "type": "spell",
+  "img": "icons/sundries/books/book-tooled-gold-purple.webp",
+  "effects": [],
+  "folder": "Uomj8iwM0LC6tcoG",
+  "flags": {
+    "cf": null,
+    "core": {},
+    "exportSource": {
+      "world": "ose-lts",
+      "system": "ose",
+      "coreVersion": "11.306",
+      "systemVersion": "1.9.4"
+    }
+  },
+  "system": {
+    "description": "<p>May be used in one of two situations:<br />1. <strong>Battle</strong>: Allies within a 20&rsquo; square area who are not yet in melee gain a +1 bonus to attack and damage rolls and a +1 bonus to morale.<br />2. <strong>Ritual</strong>: Casting bless may also form part of rituals of purification or consecration, at the referee&rsquo;s discretion.</p>",
+    "save": "",
+    "lvl": 2,
+    "class": "Cleric",
+    "duration": "6 turns",
+    "range": "60'",
+    "roll": "",
+    "memorized": 0,
+    "cast": 0,
+    "tags": []
+  },
+  "_stats": {
+    "systemId": "ose",
+    "systemVersion": "1.9.4",
+    "coreVersion": "11.306",
+    "createdTime": 1694287774790,
+    "modifiedTime": 1694287774790,
+    "lastModifiedBy": "KChuFV21VI0gVvTZ"
+  }
+}
