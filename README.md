@@ -1,6 +1,6 @@
 # text-to-json-demo
 
-Using help from OpenAI, we can make an embedding out of any wiki (such as SRD wikis) or document (such as PDFs)
+Using help from OpenAI, we can make an embedding out of any wiki (such as SRD wikis) or document (such as PDFs) and then query it to make hundreds of JSON files
 
 ## How to run
 
