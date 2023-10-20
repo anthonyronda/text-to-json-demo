@@ -2,3 +2,4 @@ data/
 secretkey.py
 __pycache__/
 pdfs/
+templates.py
