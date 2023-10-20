@@ -1,0 +1,22 @@
+# Pokemon example template is based on Pokemon showdown
+# See the Pokemon Showdown documentation for details:
+# https://github.com/smogon/pokemon-showdown/blob/master/sim/TEAMS.md#json-format
+template="""
+ [ SPECIAL INSTRUCTION: put at least one, but no more than six, JSON objects in this array. Each pokemon in the team is its own object
+  {
+    "name": "if the pokemon has a nickname put it here, else leave it blank",
+    "species": "this string is the species name of the Pokemon",
+    "gender": "",
+    "item": "if the pokemon is said to be holding an item, put the name of the item here, else leave it blank",
+    "ability": "if the pokemon is said to have an ability, put the name of the ability here, else leave it blank",
+    "evs": {"hp": a number representing how much HP the pokemon has, "atk": a number representing how much Attack the pokemon has, "def": a number representing how much Defense the pokemon has, "spa": a number representing how much Special Attack the pokemon has, "spd": a number representing how much Special Defense the pokemon has, "spe": a number representing how much Speed the pokemon has"},
+    "nature": "if the pokemon is said to have a nature, put the name of the nature here, else leave it blank",
+    "ivs": {"hp": 31, "atk": 31, "def": 31, "spa": 30, "spd": 30, "spe": 31},
+    "moves": [ SPECIAL INSTRUCTION: put each move selected for the current pokemon as a string. There can be no fewer than one, and no more than four
+        "Quick Attack",
+        END OF EXAMPLE]
+  },
+  END OF EXAMPLE
+]
+
+"""
