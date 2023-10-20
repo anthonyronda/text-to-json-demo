@@ -6,6 +6,10 @@ import tiktoken  # for counting tokens
 from scipy import spatial  # for calculating vector similarities for search
 from secretkey import openai_secret_key
 from templates import monster_template
+from typing import List
+import time
+import os # for saving files
+import json # for saving jsons
 
 # json template
 json_template='''
@@ -204,8 +208,50 @@ def ask(
     print(response_message)
     return response_message
 
-ask("Whale, Killer")
-ask("Dragon, Green")
+def batch_ask(
+    queries: List[str],
+    df: pd.DataFrame = df,
+    model: str = GPT_MODEL,
+    token_budget: int = 4096 - 500,
+    print_message: bool = False,
+    output_dir: str = "responses"
+) -> List[str]:
+    """Answers a batch of queries using GPT and a dataframe of relevant texts and embeddings."""
+    response_messages = []
+    requests_per_minute = 3
+    delay = 63 / requests_per_minute
+
+    for query in queries:
+        message = query_message(query, df, model=model, token_budget=token_budget)
+
+        messages = [
+            {"role": "system", "content": "You input data about role playing game monsters into the provided JSON template."},
+            {"role": "user", "content": message},
+        ]
+        
+        response = openai.ChatCompletion.create(
+            model=model,
+            messages=messages,
+            temperature=0
+        )
+        
+        response_message = response["choices"][0]["message"]["content"]
+        response_messages.append(response_message)
+        
+        if print_message:
+            print(response_message)
+
+        # Save the response message as a JSON file
+        filename = os.path.join(output_dir, f"{query}.json")
+        with open(filename, "w") as file:
+            json.dump(response_message, file)
+        
+        
+        time.sleep(delay)
+    
+    return response_messages
+
+batch_ask(["Grey Ooze", "Green Slime", "Hellhound", "Hippogriff"], print_message=True)
 
 # Foundry VTT Game Compendium GitHub Action Lifecycle
 #
