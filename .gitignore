@@ -4,3 +4,5 @@ __pycache__/
 pdfs/
 templates.py
 responses/
+.DS_Store
+/queries
