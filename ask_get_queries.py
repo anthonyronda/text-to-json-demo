@@ -5,12 +5,11 @@ import pandas as pd  # for storing text and embeddings data
 import tiktoken  # for counting tokens
 from scipy import spatial  # for calculating vector similarities for search
 from secretkey import openai_secret_key
-from templates import monster_template_from_pdf
+from templates import monster_template
 from typing import List
 import time
 import os # for saving files
 import json # for saving jsons
-
 
 # models
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -21,7 +20,7 @@ openai.api_key = openai_secret_key
 
 # download pre-chunked text and pre-computed embeddings
 # this file is ~200 MB, so may take a minute depending on your connection speed
-embeddings_path = "data/cc2.csv"
+embeddings_path = "data/limitless_heroics_tome.csv"
 
 df = pd.read_csv(embeddings_path)
 
@@ -90,20 +89,19 @@ def query_message(
 ) -> str:
     """Return a message for GPT, with relevant source texts pulled from a dataframe."""
     strings, relatednesses = strings_ranked_by_relatedness(query, df)
-    introduction = 'For each line of the JSON template, if a key-value description is present, replace that description with the relevant data in provided book page about the provided ability. Sometimes the information goes from one page to the next, or starts in the middle of the page. The pages have lots of erroneous line breaks, so be careful. When instructed, only use <p></p> tags for paragraphs, not erroneous line breaks. If no key-value description is present, or confidence is low, leave the line as-is.'
-    question = f"\n\nABILITY: {query}"
-    template = f"\n\nJSON template:\n{monster_template_from_pdf}"
+    introduction = 'For the given QUERY, create a newline-delimited list of all matching names found in the SUPPORTING ARTICLES. If a name does not exist in the SUPPORTING ARTICLES, do not add it to the list. DO NOT give a sentence explaining the list, and do not add numbers or bulletpoints to the list.'
+    question = f"\n\nQUERY: {query}"
     message = introduction
     for string in strings:
-        next_article = f'\n\nREFERENCE PAGE:\n"""\n{string}\n"""'
+        next_article = f'\n\nSUPPORTING ARTICLE:\n"""\n{string}\n"""'
         if (
-            num_tokens(message + template + next_article + question, model=model)
+            num_tokens(message + next_article + question + "LIST:\n", model=model)
             > token_budget
         ):
             break
         else:
             message += next_article
-    return message + template + question
+    return message + question
 
 # This code defines a function called ask that takes in a
 # query string, a pandas DataFrame, a model name, a token budget,
@@ -120,7 +118,7 @@ def ask(
     query: str,
     df: pd.DataFrame = df,
     model: str = GPT_MODEL,
-    token_budget: int = 8000,
+    token_budget: int = 1600,
     print_message: bool = False,
 ) -> str:
     """Answers a query using GPT and a dataframe of relevant texts and embeddings."""
@@ -128,8 +126,8 @@ def ask(
     if print_message:
         print(message)
     messages = [
+        {"role": "system", "content": "You input data about role playing game monsters into the provided JSON template."},
         {"role": "user", "content": message},
-        {"role": "system", "content": "You input data about role playing game abilities into the provided JSON template."},
     ]
     response = openai.ChatCompletion.create(
         model=model,
@@ -141,10 +139,10 @@ def ask(
     return response_message
 
 def batch_ask(
-    file_path: str,
+    queries: [str],
     df: pd.DataFrame = df,
     model: str = GPT_MODEL,
-    token_budget: int = 6000,
+    token_budget: int = 16000,
     print_message: bool = False,
     output_dir: str = "responses"
 ) -> List[str]:
@@ -156,14 +154,11 @@ def batch_ask(
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
-    with open(file_path, "r") as file:
-        queries = file.read().splitlines()
-
     for query in queries:
         message = query_message(query, df, model=model, token_budget=token_budget)
 
         messages = [
-            {"role": "system", "content": "You input data about role playing game monsters into the provided JSON template."},
+            {"role": "system", "content": "You input data about role playing games from the provided articles."},
             {"role": "user", "content": message},
         ]
         
@@ -180,7 +175,7 @@ def batch_ask(
             print(response_message)
 
         # Save the response message as a JSON file
-        filename = os.path.join(output_dir, f"{query}.json")
+        filename = os.path.join(output_dir, f"lh-{query}.txt")
         with open(filename, "w") as file:
             file.write(response_message)
         
@@ -190,7 +185,7 @@ def batch_ask(
     
     return response_messages
 
-batch_ask("responses/cc1-Class Ability Names.txt",output_dir="responses/cc1", print_message=True)
+batch_ask(["Service Animal Names", "Emotional Support Animal Feature Names", "Emotional Support Animal Subclass Names", "Magical Assistance Item Names", "Assistive Bestiary Animal Names", "Assistive Equipment Item Names", "NPC Names"], print_message=True)
 
 # Foundry VTT Game Compendium GitHub Action Lifecycle
 #

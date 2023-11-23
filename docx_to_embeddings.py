@@ -10,7 +10,7 @@ from secretkey import openai_secret_key
 
 # get page strings from PDF data
 
-loader = PyPDFLoader("pdfs/Carcass_Crawler_Issue_3_-_v1-0.pdf")
+loader = PyPDFLoader("pdfs/Advanced_Fantasy_Referees_Tome_v1-3.pdf")
 pages = loader.load_and_split()
 
 # get Wiki pages about OSE monsters
@@ -345,6 +345,6 @@ df = pd.DataFrame({"text": page_strings, "embedding": embeddings})
 
 # save document chunks and embeddings
 
-SAVE_PATH = "data/cc3.csv"
+SAVE_PATH = "data/ose_ref_tome.csv"
 
 df.to_csv(SAVE_PATH, index=False)
