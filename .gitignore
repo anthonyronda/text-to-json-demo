@@ -1,5 +1,7 @@
-data/
+**/*.pdf
+**/*.csv
+queries/*.txt
+responses/*.json
 secretkey.py
 __pycache__/
-pdfs/
 templates.py
